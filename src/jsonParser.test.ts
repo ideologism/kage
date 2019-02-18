@@ -69,5 +69,5 @@ test("parse jsonNumber", () => {
   expect(runLexer(jsonNumber, "0.12e+2")).toEqual(12);
 });
 test("parse jsonArray", () => {
-  expect(runLexer(jsonArray, '["a","b","c"]')).toEqual(['a','b','c']);
+  expect(runLexer(jsonArray, '[[],[],1,2,3]')).toEqual([[],[],1,2,3]);
 });

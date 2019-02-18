@@ -1,12 +1,16 @@
+import { Input, IPosition } from "./input";
 export declare type Result<T> = Success<T> | Failure<T>;
 export declare type ResultEnum<T> = ResultSuccess<T> | ResultFailure;
+export declare function isSuccess<T>(result: Result<T>): result is Success<T>;
+export declare function isResultSuccess<T>(result: ResultEnum<T>): result is ResultSuccess<T>;
 export interface ResultSuccess<T> {
     value: T;
-    remaining: string;
+    remaining: Input;
 }
 export interface ResultFailure {
-    title: string;
-    message: string;
+    tag: string;
+    error: string;
+    position: IPosition;
 }
 export interface Success<T> extends SuccessStatic<T>, ResultSuccess<T> {
     handle: ResultCallback<T>;
@@ -28,4 +32,5 @@ export declare type ResultCallback<T> = (x: ResultHandler<T>) => any;
 export declare type SuccessCallback<T> = (x: ResultSuccess<T>) => any;
 export declare type FailureCallback = (x: ResultFailure) => any;
 export declare function initResult<T>(result: ResultEnum<T>): Result<T>;
+export declare function printResult<T>(result: ResultEnum<T>): void;
 export {};

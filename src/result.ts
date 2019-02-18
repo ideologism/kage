@@ -57,7 +57,7 @@ export function initResult<T>(result: ResultEnum<T>): Result<T> {
 export function printResult<T>(result: ResultEnum<T>) {
   if (isResultSuccess(result)) {
     const { value, remaining } = result;
-    console.log({ value, remaining });
+    console.log(JSON.stringify(value, null, 2));
   } else {
     const {
       error,

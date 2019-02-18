@@ -72,26 +72,50 @@ export const jsonNumber = scanMinusSign
 const leftBracket = pString("[").then(scanSpace.many());
 const rightBracket = pString("]").then(scanSpace.many());
 const comma = pString(",").then(scanSpace.many());
-const {parser, ref} = createParserForwardedToRef()
-const jsonValue = parser
+const {
+  lexer: jsonValueLexer,
+  ref: jsonValueRef
+} = createLexerForwardedToRef();
+const jsonValue: Lexer<any> = jsonValueLexer
   .then(scanSpace.many())
   .map(([value, _]) => {
     return value;
   });
-export const jsonArray: Lexer<any[]> = Lexer.startWith(
-  leftBracket,
-  jsonValue.sepBy(comma)
-)
+export const jsonArray = Lexer.startWith(leftBracket, jsonValue.sepBy(comma))
   .endWith(rightBracket)
   .setLabel("Array");
-  // helper
-function createParserForwardedToRef<T>() {
-  const dummyParser: Lexer<T> = Lexer.of(_ => {
-    throw new Error("unfixed forwarded parser");
+
+const leftBrace = pString("{");
+const rightBrace = pString("}");
+const colon = pString(":");
+const key = jsonString;
+const value = jsonValue;
+const keyValue = key.endWith(colon).then(value);
+const keyValues = keyValue.sepBy(comma);
+const jsonObject = keyValues.between(leftBrace, rightBrace).map(x =>
+  x.reduce((cur: any, [key, value]) => {
+    cur[key] = value;
+    return cur;
+  }, {})
+);
+// helper
+function createLexerForwardedToRef<T>() {
+  const dummyLexer: Lexer<T> = Lexer.of(_ => {
+    throw new Error("unfixed forwarded lexer");
   }, "unknown");
-  const parserRef = { parser: dummyParser };
-  const wrapperParser = Lexer.of(input => parserRef.parser.execute(input));
-  return {parser: wrapperParser, ref: parserRef};
+  const LexerRef = { lexer: dummyLexer };
+  const wrapperLexer = Lexer.of(input => LexerRef.lexer.execute(input));
+  return { lexer: wrapperLexer, ref: LexerRef };
 }
-ref.parser = Lexer.choice([jsonNull, jsonBool, jsonNumber, jsonString, jsonArray]);
-printResult(jsonArray.execute(initInput('[[],[],1,2,3]')))
+jsonValueRef.lexer = Lexer.choice([
+  jsonNull,
+  jsonBool,
+  jsonNumber,
+  jsonString,
+  jsonArray,
+  jsonObject
+]);
+
+const example1 = '{"widget":{"debug":"on","window":{"title":"SampleKonfabulatorWidget","name":"main_window","width":500,"height":500},"image":{"src":"Images/Sun.png","name":"sun1","hOffset":250,"vOffset":250,"alignment":"center"},"text":{"data":"ClickHere","size":36,"style":"bold","name":"text1","hOffset":250,"vOffset":100,"alignment":"center","onMouseUp":"sun1.opacity=(sun1.opacity/100)*90;"}}}'
+
+printResult(jsonObject.execute(initInput(example1)));
