@@ -5,15 +5,15 @@ declare type LexerFn<T> = (input: Input) => Result<T>;
 export declare class Lexer<T> {
     static of<T>(lexerFn: LexerFn<T>, label?: string): Lexer<T>;
     static return<T>(origin: T): Lexer<T>;
+    static parseString(str: string): Lexer<string>;
+    static satisfy(predicate: (x: string) => boolean, label?: string): Lexer<string>;
     static anyOf(chars: string[]): Lexer<string>;
     static choice(parsers: Array<Lexer<any>>): Lexer<any>;
+    static choice<T>(parsers: Array<Lexer<T>>): Lexer<T>;
     static lift2<T, S, U>(f: (t: T) => (s: S) => U): (lexerT: Lexer<T>) => (lexerS: Lexer<S>) => Lexer<U>;
     static sequence<T>(lexerList: Array<Lexer<T>>): Lexer<T[]>;
     static scanZeroOrMore<T>(lexer: Lexer<T>): (input: Input) => Success<T[]>;
     static startWith<T, S>(lexerStart: Lexer<T>, lexerRest: Lexer<S>): Lexer<S>;
-    ref?: {
-        parser: Lexer<any>;
-    };
     private lexerFn;
     private label;
     constructor(lexerFn: LexerFn<T>, label?: string);
@@ -31,7 +31,6 @@ export declare class Lexer<T> {
     between<S, U>(left: Lexer<S>, right: Lexer<U>): Lexer<T>;
     sepBy1<S>(sep: Lexer<S>): Lexer<T[]>;
     sepBy<S>(sep: Lexer<S>): Lexer<T[]>;
+    repeat(times: number): Lexer<T[]>;
 }
-export declare function satisfy(predicate: (x: string) => boolean, label?: string): Lexer<string>;
-export declare function pString(str: string): Lexer<string>;
 export {};

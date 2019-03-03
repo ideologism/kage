@@ -1,36 +1,46 @@
 import { Input, IPosition } from "./input";
-export declare type Result<T> = Success<T> | Failure<T>;
-export declare type ResultEnum<T> = ResultSuccess<T> | ResultFailure;
-export declare function isSuccess<T>(result: Result<T>): result is Success<T>;
-export declare function isResultSuccess<T>(result: ResultEnum<T>): result is ResultSuccess<T>;
-export interface ResultSuccess<T> {
-    value: T;
-    remaining: Input;
+declare type ResultValue<T> = SuccessValue<T> | FailureValue;
+export declare function isSuccessValue<T>(result: ResultValue<T>): result is SuccessValue<T>;
+export declare abstract class Result<T> {
+    static of<T>(result: ResultValue<T>): Success<T> | Failure<T>;
+    abstract value: SuccessValue<T> | FailureValue;
+    isSuccess(): this is Success<T>;
+    abstract cata<S>(x: {
+        failure: FailureHandler<S>;
+        success: SuccessHandler<T, S>;
+    }): S;
 }
-export interface ResultFailure {
+export interface SuccessValue<T> {
+    value: T;
+    newInput: Input;
+}
+export declare type SuccessHandler<T, S> = (_: SuccessValue<T>) => S;
+export declare type OptionalSuccessHandler<T, S> = (_?: SuccessValue<T>) => S;
+export declare class Success<T> extends Result<T> {
+    value: SuccessValue<T>;
+    constructor(success: SuccessValue<T>);
+    success<S>(handler: SuccessHandler<T, S>): S;
+    failure<S>(handler: OptionalFailureHandler<S>): S;
+    cata<S>(x: {
+        failure?: any;
+        success: SuccessHandler<T, S>;
+    }): S;
+}
+export interface FailureValue {
     tag: string;
     error: string;
     position: IPosition;
 }
-export interface Success<T> extends SuccessStatic<T>, ResultSuccess<T> {
-    handle: ResultCallback<T>;
+export declare type FailureHandler<T> = (_: FailureValue) => T;
+export declare type OptionalFailureHandler<T> = (_?: FailureValue) => T;
+export declare class Failure<T> extends Result<T> {
+    value: FailureValue;
+    constructor(failure: FailureValue);
+    failure<S>(handler: FailureHandler<S>): S;
+    success<S>(handler: OptionalSuccessHandler<T, S>): S;
+    cata<S>(x: {
+        failure: FailureHandler<S>;
+        success?: any;
+    }): S;
 }
-export interface Failure<T> extends FailureStatic, ResultFailure {
-    handle: ResultCallback<T>;
-}
-interface SuccessStatic<T> {
-    success: (x: SuccessCallback<T>) => any;
-}
-interface FailureStatic {
-    failure: (x: FailureCallback) => any;
-}
-export interface ResultHandler<T> {
-    success: SuccessCallback<T>;
-    failure: FailureCallback;
-}
-export declare type ResultCallback<T> = (x: ResultHandler<T>) => any;
-export declare type SuccessCallback<T> = (x: ResultSuccess<T>) => any;
-export declare type FailureCallback = (x: ResultFailure) => any;
-export declare function initResult<T>(result: ResultEnum<T>): Result<T>;
-export declare function printResult<T>(result: ResultEnum<T>): void;
 export {};

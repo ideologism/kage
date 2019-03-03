@@ -1,4 +1,4 @@
-import { initOptional, Optional } from "./types";
+import { initOptional, Optional } from './types';
 export interface IPosition {
   line: number;
   column: number;
@@ -8,7 +8,7 @@ export interface Input {
   lines: string[];
 }
 export function initInput(str: string): Input {
-  return { position: { line: 0, column: 0 }, lines: str.split("\n") };
+  return { position: { line: 0, column: 0 }, lines: str.split('\n').map(x => x + '\n') };
 }
 function curChar(input: Input): Optional<string> {
   const { line, column } = input.position;
@@ -19,9 +19,9 @@ function curChar(input: Input): Optional<string> {
 }
 export function consume(input: Input) {
   let { line, column } = input.position;
-  const position = {...input.position}
+  const position = { ...input.position };
   if (line > input.lines.length - 1) {
-    return { newInput: input, value: curChar(input)};
+    return { newInput: input, value: curChar(input) };
   }
   column++;
   if (column > input.lines[line].length - 1) {
@@ -30,5 +30,5 @@ export function consume(input: Input) {
   }
   position.line = line;
   position.column = column;
-  return { newInput: {position, lines: input.lines}, value: curChar(input) }
+  return { newInput: { position, lines: input.lines }, value: curChar(input) };
 }

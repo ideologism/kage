@@ -1,16 +1,19 @@
+import { createParserForwardedToRef } from "./helper";
 import { initInput } from "./input";
-import { Lexer, pString, satisfy } from "./lexer";
+import { Parser } from "./parser";
 import { isSome } from "./types";
-import { printResult, initResult } from "./result";
 
-export const jsonNull = pString("null")
+export const jsonNull = Parser.parseString("null")
   .map(_ => null)
   .setLabel("null");
-export const jsonBool = pString("true")
-  .or(pString("false"))
+export const jsonBool = Parser.parseString("true")
+  .or(Parser.parseString("false"))
   .map(x => (x === "true" ? true : false));
-export const unescapedChar = satisfy(x => x !== "\\" && x !== '"', "char");
-export const escapedChar = Lexer.choice(
+export const unescapedChar = Parser.satisfy(
+  x => x !== "\\" && x !== '"',
+  "char"
+);
+export const escapedChar = Parser.choice(
   [
     // (stringToMatch, resultChar)
     ['\\"', '"'], // quote
@@ -21,29 +24,28 @@ export const escapedChar = Lexer.choice(
     ["\\n", "\n"], // newline
     ["\\r", "\r"], // cr
     ["\\t", "\t"] // tab
-  ].map(([x, y]) => pString(x).map(_ => y))
+  ].map(([x, y]) => Parser.parseString(x).map(_ => y))
 ).setLabel("escaped char");
 // TODO: support unicode string
-const quotation = pString('"');
+const quotation = Parser.parseString('"');
 export const jsonString = unescapedChar
   .or(escapedChar)
   .many()
   .between(quotation, quotation)
   .map(x => x.join(""));
 
-const scanMinusSign = pString("-");
-const scanMinusOrPlusSign = Lexer.anyOf(["-", "+"]);
-const scanZero = pString("0");
-const scanOneToNine = Lexer.anyOf(
+const scanMinusSign = Parser.parseString("-");
+const scanMinusOrPlusSign = Parser.anyOf(["-", "+"]);
+const scanZero = Parser.parseString("0");
+const scanOneToNine = Parser.anyOf(
   Array(9)
     .fill(0)
     .map((n, i) => i + 1 + "")
 ).setLabel("digit");
 const scanDigits = scanZero.or(scanOneToNine);
-const scanPoint = pString(".");
-const scanSpace = pString(" ");
-const scanE = Lexer.anyOf(["e", "E"]);
-// [[[minusSign: Optional<string>, integerPart: string | [string, string[]]], decimalPart: Optional<[string, string[]]>], exponentPart: Optional<[[string, string], string]>]
+const scanPoint = Parser.parseString(".");
+const scanSpace = Parser.parseString(" ");
+const scanE = Parser.anyOf(["e", "E"]);
 export const jsonNumber = scanMinusSign
   .optional()
   .then(scanOneToNine.then(scanDigits.many()).or(scanZero))
@@ -69,25 +71,25 @@ export const jsonNumber = scanMinusSign
     return isSome(minusSign) ? -value : value;
   });
 
-const leftBracket = pString("[").then(scanSpace.many());
-const rightBracket = pString("]").then(scanSpace.many());
-const comma = pString(",").then(scanSpace.many());
+const leftBracket = Parser.parseString("[").then(scanSpace.many());
+const rightBracket = Parser.parseString("]").then(scanSpace.many());
+const comma = Parser.parseString(",").then(scanSpace.many());
 const {
-  lexer: jsonValueLexer,
+  parser: jsonValueParser,
   ref: jsonValueRef
-} = createLexerForwardedToRef();
-const jsonValue: Lexer<any> = jsonValueLexer
+} = createParserForwardedToRef();
+const jsonValue: Parser<any> = jsonValueParser
   .then(scanSpace.many())
   .map(([value, _]) => {
     return value;
   });
-export const jsonArray = Lexer.startWith(leftBracket, jsonValue.sepBy(comma))
+export const jsonArray = Parser.startWith(leftBracket, jsonValue.sepBy(comma))
   .endWith(rightBracket)
   .setLabel("Array");
 
-const leftBrace = pString("{");
-const rightBrace = pString("}");
-const colon = pString(":");
+const leftBrace = Parser.parseString("{");
+const rightBrace = Parser.parseString("}");
+const colon = Parser.parseString(":");
 const key = jsonString;
 const value = jsonValue;
 const keyValue = key.endWith(colon).then(value);
@@ -98,16 +100,7 @@ const jsonObject = keyValues.between(leftBrace, rightBrace).map(x =>
     return cur;
   }, {})
 );
-// helper
-function createLexerForwardedToRef<T>() {
-  const dummyLexer: Lexer<T> = Lexer.of(_ => {
-    throw new Error("unfixed forwarded lexer");
-  }, "unknown");
-  const LexerRef = { lexer: dummyLexer };
-  const wrapperLexer = Lexer.of(input => LexerRef.lexer.execute(input));
-  return { lexer: wrapperLexer, ref: LexerRef };
-}
-jsonValueRef.lexer = Lexer.choice([
+jsonValueRef.parser = Parser.choice([
   jsonNull,
   jsonBool,
   jsonNumber,
@@ -116,6 +109,7 @@ jsonValueRef.lexer = Lexer.choice([
   jsonObject
 ]);
 
-const example1 = '{"widget":{"debug":"on","window":{"title":"SampleKonfabulatorWidget","name":"main_window","width":500,"height":500},"image":{"src":"Images/Sun.png","name":"sun1","hOffset":250,"vOffset":250,"alignment":"center"},"text":{"data":"ClickHere","size":36,"style":"bold","name":"text1","hOffset":250,"vOffset":100,"alignment":"center","onMouseUp":"sun1.opacity=(sun1.opacity/100)*90;"}}}'
+const example1 =
+  '{"widget":{"debug":"on","window":{"title":"SampleKonfabulatorWidget","name":"main_window","width":500,"height":500},"image":{"src":"Images/Sun.png","name":"sun1","hOffset":250,"vOffset":250,"alignment":"center"},"text":{"data":"ClickHere","size":36,"style":"bold","name":"text1","hOffset":250,"vOffset":100,"alignment":"center","onMouseUp":"sun1.opacity=(sun1.opacity/100)*90;"}}}';
 
-printResult(jsonObject.execute(initInput(example1)));
+jsonObject.execute(initInput(example1));

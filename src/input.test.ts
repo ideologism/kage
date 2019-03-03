@@ -14,5 +14,5 @@ test("consume input", () => {
     cur = value;
     input = newInput;
   }
-  expect(output).toBe("line1line2line3line4");
+  expect(output).toBe(testInput + "\n");
 });

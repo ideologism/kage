@@ -1,6 +1,7 @@
 {
   "extends": ["tslint:recommended", "tslint-config-prettier"],
   "rules": {
-    "interface-name": false
+    "interface-name": false,
+    "max-classes-per-file": [false, 5, "exclude-class-expressions"]
   }
 }
